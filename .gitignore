@@ -1,0 +1,18 @@
+/vendor/
+node_modules/
+.env
+/storage/*.key
+/bootstrap/cache/
+public/storage/
+storage/logs/
+storage/framework/sessions/
+storage/framework/cache/
+storage/framework/views/
+
+# npm build
+public/build
+public/hot
+
+# IDE settings
+.vscode/
+.idea/

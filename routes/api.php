@@ -13,5 +13,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/posts/{id}/versions/{version}/restore', [PostController::class, 'restoreVersion']);
     Route::post('/analyze-seo', [GenerationController::class, 'analyzeSEO'])
     ->middleware('auth:sanctum');
+    Route::post('/upgrade-content', [GenerationController::class, 'upgradeContent'])
+    ->middleware('auth:sanctum');
+    Route::post('/explore-keyword', [GenerationController::class, 'exploreKeyword'])
+    ->middleware('auth:sanctum');
+    Route::post('/recommend-internal-links', [GenerationController::class, 'recommendInternalLinks']);
+    Route::post('/generate-tags', [GenerationController::class, 'generateTags']);
+    Route::post('/generate-thumbnail', [GenerationController::class, 'generateThumbnail']);
 
 });

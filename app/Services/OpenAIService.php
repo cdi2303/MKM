@@ -62,4 +62,37 @@ class OpenAIService
 
         return $response->json()['data'][0]['url'] ?? null;
     }
+    
+    public function generateSmartThumbnail($prompt)
+    {
+        // 이미지 생성
+        $response = Http::withToken($this->apiKey)
+            ->post('https://api.openai.com/v1/images/generations', [
+                'model' => 'gpt-image-1',
+                'prompt' => $prompt,
+                'size' => '1024x1024'
+            ]);
+
+        $url = $response->json()['data'][0]['url'] ?? null;
+        if (!$url) return null;
+
+        // 16:9 크롭 처리 (로컬 저장)
+        $imageData = file_get_contents($url);
+        $filename = 'thumbnails/' . time() . '.jpg';
+        $fullPath = public_path($filename);
+
+        // Intervention Image 사용 (composer 필요)
+        // composer require intervention/image
+        $img = \Image::make($imageData);
+
+        // 16:9 비율 계산
+        $targetW = 1280;
+        $targetH = 720;
+        $img->fit($targetW, $targetH, null, 'center');
+
+        $img->save($fullPath, 85);
+
+        return '/' . $filename;
+    }
+
 }

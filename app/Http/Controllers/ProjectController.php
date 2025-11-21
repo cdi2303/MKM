@@ -78,67 +78,47 @@ class ProjectController extends Controller
         return redirect('/projects')->with('success', '프로젝트 삭제 완료');
     }
 
-
     public function stats($id)
     {
         $project = Project::where('id', $id)
             ->where('user_id', Auth::id())
             ->firstOrFail();
 
-        $posts = $project->posts()->orderBy('id','desc')->get();
+        // 전체 글
+        $posts = $project->posts()->orderBy('id', 'desc')->get();
 
         $totalPosts = $posts->count();
+
+        // 최근 글
         $latestPost = $posts->first();
         $latestDate = $latestPost ? $latestPost->created_at->format('Y-m-d H:i') : '-';
 
-        // 키워드 TOP 5
-        $topKeywords = $posts
-            ->groupBy('keyword')
-            ->sortByDesc(function($group){ return count($group); })
-            ->take(5)
-            ->map(function($group, $keyword){
-                return [
-                    'keyword' => $keyword,
-                    'count' => count($group)
-                ];
-            });
+        // 월별 통계
+        $monthly = $posts->groupBy(function($p){
+            return $p->created_at->format('Y-m');
+        })->map->count();
 
-        // 최근 글 5개
-        $recentPosts = $posts->take(5);
+        // 키워드 TOP 10
+        $topKeywords = $posts->groupBy('keyword')
+            ->map->count()
+            ->sortDesc()
+            ->take(10);
 
+        // SEO 점수 (meta 컬럼에 있다고 가정)
+        $seoScores = $posts->pluck('meta')->map(function($meta){
+            return is_array($meta) && isset($meta['score']) ? $meta['score'] : null;
+        })->filter()->values();
 
-        // ------------------------------
-        // ⭐ 추가되는 그래프용 데이터
-        // ------------------------------
-
-        // 1) 키워드 사용 빈도 전체
-        $keywordStats = $posts
-            ->groupBy('keyword')
-            ->map(fn($group) => $group->count());
-
-        // 2) 날짜별 글 생성량 (Y-m-d 기준)
-        $dateStats = $posts
-            ->groupBy(fn($p) => $p->created_at->format('Y-m-d'))
-            ->map(fn($group) => $group->count());
-
-        // 3) 최근 30일 데이터 만들기
-        $dailyStats = collect();
-        $today = now();
-
-        for ($i = 29; $i >= 0; $i--) {
-            $day = $today->copy()->subDays($i)->format('Y-m-d');
-            $dailyStats[$day] = $dateStats[$day] ?? 0;
-        }
+        $avgSeoScore = $seoScores->avg();
 
         return view('projects.stats', compact(
             'project',
             'totalPosts',
             'latestDate',
+            'monthly',
             'topKeywords',
-            'recentPosts',
-            'keywordStats',
-            'dateStats',
-            'dailyStats'
+            'avgSeoScore'
         ));
     }
+
 }

@@ -23,6 +23,13 @@
         SEO 분석하기
     </button>
 
+    <button 
+        id="upgradeContentBtn" 
+        class="px-4 py-2 bg-green-600 text-white rounded mt-3">
+        SEO 자동 개선하기
+    </button>
+
+
     <div id="seoResult" class="mt-6 hidden bg-white p-4 rounded shadow"></div>
 
     <p class="text-gray-500 mb-4">{{ $post->created_at }}</p>
@@ -96,6 +103,67 @@ document.getElementById('seoAnalyzeBtn').addEventListener('click', () => {
         `;
     });
 });
+
+document.getElementById('upgradeContentBtn').addEventListener('click', () => {
+    
+    const title = @json($post->title);
+    const html  = @json($post->html);
+    const keyword = @json($post->keyword);
+
+    fetch('/api/upgrade-content', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ title, html, keyword })
+    })
+    .then(r => r.json())
+    .then(data => {
+        Swal.fire({
+            title: '개선된 콘텐츠 확인',
+            html: `
+                <div class="text-left">
+                    <h3 class="font-bold mb-2">🔧 변경된 사항</h3>
+                    <ul class="list-disc ml-6">
+                        ${data.changes.map(v => `<li>${v}</li>`).join('')}
+                    </ul>
+
+                    <h3 class="font-bold mt-4 mb-2">📄 개선된 본문</h3>
+                    <div class="p-3 border rounded bg-gray-50" style="max-height: 400px; overflow-y: auto;">
+                        ${data.html}
+                    </div>
+
+                    <h3 class="font-bold mt-4 mb-2">🆚 변경 비교</h3>
+                    <div class="p-3 border rounded bg-gray-50">
+                        ${data.diff}
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '본문에 반영하기',
+            cancelButtonText: '닫기'
+        }).then(result => {
+            if (result.isConfirmed) {
+                // Ajax로 글 업데이트
+                fetch('/api/save-post', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        id: {{ $post->id }},
+                        html: data.html
+                    })
+                }).then(() => {
+                    location.reload();
+                });
+            }
+        });
+    });
+});
+
 </script>
 
 @endsection

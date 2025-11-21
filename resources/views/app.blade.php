@@ -1,17 +1,34 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>BlogGPT</title>
-    <link href="/css/app.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{{ config('app.name', 'Laravel') }}</title>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-gray-100">
-<nav class="bg-white p-4 shadow">
-    <div class="container mx-auto"> <a href="/">BlogGPT</a> </div>
-</nav>
-<main class="py-6">@yield('content')</main>
-<script src="/js/app.js"></script>
+<body class="font-sans antialiased">
+
+<div class="min-h-screen bg-gray-100">
+
+    @include('layouts.navigation')
+
+    <!-- Page Heading -->
+    @isset($header)
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                {{ $header }}
+            </div>
+        </header>
+    @endisset
+
+    <!-- Page Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        @yield('content')
+    </main>
+
+</div>
+
 </body>
 </html>

@@ -436,7 +436,7 @@ class GenerationController extends Controller {
                     - 겹치는 태그 제거
                     - 검색량 높은 단어 중심
                     - 한국 블로그 플랫폼 기준
-                        
+
                     제목: {$title}
                     키워드: {$keyword}
                     본문 일부: " . mb_substr(strip_tags($html), 0, 700)
@@ -466,5 +466,40 @@ class GenerationController extends Controller {
         ]);
     }
 
-    
+    public function generateTitleCandidates(Request $request)
+    {
+        $post = Post::findOrFail($request->post_id);
+
+        $prompt = "
+        아래 글의 제목을 AB 테스트 용도로 최적화된 제목 5개 생성해줘.
+        글 제목: {$post->title}
+        글 키워드: {$post->keyword}
+
+        조건:
+        - 클릭율 높은 스타일
+        - 너무 자극적 X
+        - 모바일 SEO 최적화
+        - JSON 배열만 출력
+    ";
+
+        $raw = $this->ai->generate([
+            'messages' => [
+                ['role' => 'system', 'content' => 'You are an expert SEO copywriter.'],
+                ['role' => 'user', 'content' => $prompt],
+            ]
+        ]);
+
+        $titles = json_decode($raw, true);
+
+        foreach ($titles as $t) {
+            TitleTest::create([
+                'post_id' => $post->id,
+                'title' => $t,
+            ]);
+        }
+
+        return response()->json(['result' => true, 'titles' => $titles]);
+    }
+
+
 }

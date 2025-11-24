@@ -1,22 +1,27 @@
 @extends('layouts.app')
+
 @section('content')
+    <div class="container mx-auto p-6">
 
-<div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-4">
+            버전 {{ $ver->version }} 상세 보기
+        </h1>
 
-    <h1 class="text-2xl font-bold mb-4">버전 {{ $ver->version }}</h1>
-    <p class="text-gray-500">{{ $ver->created_at }}</p>
+        <a href="/posts/{{ $post->id }}/versions" class="text-blue-600 underline mb-4 block">
+            ← 버전 목록으로 돌아가기
+        </a>
 
-    <div class="border p-4 my-4 bg-white rounded">
-        {!! $ver->html !!}
+        <form method="POST" action="/posts/{{ $post->id }}/versions/{{ $ver->version }}/restore">
+            @csrf
+            <button class="px-4 py-2 bg-green-600 text-white rounded mb-4"
+                    onclick="return confirm('이 버전으로 복원할까요?')">
+                이 버전으로 복원하기
+            </button>
+        </form>
+
+        <div class="prose max-w-none bg-white p-4 border rounded shadow">
+            {!! $ver->html !!}
+        </div>
+
     </div>
-
-    <form action="/posts/{{ $post->id }}/versions/{{ $ver->version }}/restore" method="POST">
-        @csrf
-        <button class="px-4 py-2 bg-green-600 rounded text-white">
-            이 버전으로 복원하기
-        </button>
-    </form>
-
-</div>
-
 @endsection

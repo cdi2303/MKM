@@ -32,12 +32,19 @@ class TistoryPublisher
                     'blogName'     => $this->blogName,
                     'title'        => $post->title,
                     'content'      => $post->html,
-                    'visibility'   => 3, // 3: 발행
+                    'visibility'   => 3,
                 ],
             ]);
 
             $data = json_decode($response->getBody()->getContents(), true);
-            return [true, $data];
+
+            return [
+                true,
+                [
+                    'id'  => $data['tistory']['item']['postId'] ?? null,
+                    'url' => $data['tistory']['item']['url'] ?? null   // ⭐ 최종 URL
+                ]
+            ];
         } catch (RequestException $e) {
             $msg = $e->getMessage();
             if ($e->hasResponse()) {
@@ -46,4 +53,5 @@ class TistoryPublisher
             return [false, $msg];
         }
     }
+
 }

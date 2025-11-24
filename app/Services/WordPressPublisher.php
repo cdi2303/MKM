@@ -38,7 +38,15 @@ class WordPressPublisher
             ]);
 
             $data = json_decode($response->getBody()->getContents(), true);
-            return [true, $data];
+
+            return [
+                true,
+                [
+                    'id'   => $data['id'] ?? null,
+                    'slug' => $data['slug'] ?? null,
+                    'url'  => $data['link'] ?? null   // ⭐ 최종 URL
+                ]
+            ];
         } catch (RequestException $e) {
             $msg = $e->getMessage();
             if ($e->hasResponse()) {

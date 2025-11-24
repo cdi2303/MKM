@@ -1,338 +1,343 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto p-6">
+    <div class="container mx-auto p-6 space-y-6">
 
-    <h1 class="text-3xl font-bold mb-6">AI 글 생성</h1>
+        <h1 class="text-3xl font-bold mb-6">
+            AI 글 생성 (MKM Generate)
+        </h1>
 
-    {{-- 키워드 입력 --}}
-    <div class="mb-4">
-        <label class="block font-semibold mb-1">키워드</label>
-        <input type="text" id="keyword" class="w-full border p-2 rounded" placeholder="예: 건강한 다이어트 저당 식단">
-    </div>
-
-    {{-- 스타일 선택 --}}
-    <div class="mb-4">
-        <label class="block font-semibold mb-1">스타일 프리셋</label>
-        <select id="style" class="w-full border p-2 rounded">
-            <option value="default">기본</option>
-            <option value="blog">블로그 스타일</option>
-            <option value="seo">SEO 최적화</option>
-            <option value="short">짧고 간단하게</option>
-        </select>
-    </div>
-
-    {{-- 프로젝트 선택 --}}
-    <div class="mb-4">
-        <label class="block font-semibold mb-1">프로젝트 선택</label>
-        <select id="project_id" class="w-full border p-2 rounded">
-            <option value="">선택하세요</option>
-            @foreach($projects as $project)
-                <option value="{{ $project->id }}">{{ $project->name }}</option>
-            @endforeach
-        </select>
-    </div>
-
-    {{-- 키워드 탐색 버튼 --}}
-    <button 
-        id="exploreBtn"
-        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded mb-6">
-        🔍 키워드 자동 탐색
-    </button>
-
-    <div id="keywordResult" class="hidden p-4 bg-white border rounded mb-6"></div>
-
-    {{-- 제목 생성 버튼 --}}
-    <button 
-        onclick="generateTitles()" 
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mb-4">
-        ✨ 제목 생성
-    </button>
-
-    {{-- 제목 리스트 --}}
-    <div id="titleSection" class="mt-6 hidden">
-        <h2 class="text-xl font-bold mb-2">추천 제목</h2>
-        <ul id="titleList" class="list-disc ml-6"></ul>
-    </div>
-
-    {{-- 본문 생성 영역 --}}
-    <div id="contentSection" class="mt-8 hidden">
-        <h2 class="text-xl font-bold mb-3">📝 생성된 본문</h2>
-        <div id="contentArea" class="border p-4 bg-white rounded max-h-[500px] overflow-y-auto"></div>
-
-        {{-- SEO 분석 버튼 --}}
-        <button 
-            id="seoAnalyzeBtn"
-            class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded mt-4">
-            🔎 SEO 분석하기
-        </button>
-
-        {{-- 자동 개선 버튼 --}}
-        <button 
-            id="upgradeContentBtn"
-            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded mt-4 ml-2">
-            🚀 SEO 자동 개선
-        </button>
-
-        {{-- 자동 태그 생성 --}}
-        <button 
-            id="tagGenerateBtn"
-            class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded mt-4 ml-2">
-            🏷️ 자동 태그 생성
-        </button>
-
-        {{-- 내부 링크 추천 --}}
-        <button 
-            id="internalLinkBtn"
-            class="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded mt-4 ml-2">
-            🔗 내부 링크 추천
-        </button>
-
-        {{-- SEO 결과 --}}
-        <div id="seoResult" class="mt-6 hidden bg-white border p-4 rounded"></div>
-
-        {{-- 태그 출력 --}}
-        <div id="tagBox" class="hidden bg-white border rounded p-4 mt-4"></div>
-
-        {{-- 내부 링크 추천 결과 --}}
-        <div id="internalLinkBox" class="hidden bg-white border rounded p-4 mt-4"></div>
-
-        {{-- 저장 버튼 --}}
-        <button 
-            onclick="savePost()" 
-            class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded mt-6">
-            💾 저장하기
-        </button>
-    </div>
-
-    <button 
-        id="thumbnailBtn"
-        class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded mt-4">
-        🖼️ 썸네일 자동 생성
-    </button>
-
-    <div id="thumbnailPreview" class="hidden mt-4">
-        <h2 class="font-bold text-lg mb-2">썸네일 미리보기</h2>
-        <img id="thumbnailImage" class="w-80 rounded shadow">
-    </div>
-</div>
-
-<script>
-// 1) 제목 생성
-function generateTitles() {
-    const keyword = keywordInput().value;
-    const style = styleInput().value;
-    const project_id = projectInput().value;
-
-    fetch('/api/generate-titles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, style, project_id })
-    })
-    .then(r => r.json())
-    .then(data => {
-        const list = document.getElementById('titleList');
-        list.innerHTML = '';
-
-        (data.titles || []).forEach(t => {
-            const li = document.createElement('li');
-            li.textContent = t;
-            li.classList.add('cursor-pointer', 'text-blue-600', 'hover:underline');
-            li.onclick = () => generateContent(t);
-            list.appendChild(li);
-        });
-
-        document.getElementById('titleSection').classList.remove('hidden');
-    });
-}
-
-// 2) 본문 생성
-function generateContent(title) {
-    const keyword = keywordInput().value;
-
-    fetch('/api/generate-content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, title })
-    })
-    .then(r => r.json())
-    .then(data => {
-        document.getElementById('contentArea').innerHTML = data.html;
-        document.getElementById('contentSection').classList.remove('hidden');
-    });
-}
-
-// 3) 저장 기능
-function savePost() {
-    const project_id = projectInput().value;
-    const html = document.getElementById('contentArea').innerHTML;
-    const keyword = keywordInput().value;
-
-    fetch('/api/save-post', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            project_id,
-            keyword,
-            html 
-        })
-    })
-    .then(() => alert('저장 완료!'));
-}
-
-// 4) SEO 분석
-document.getElementById('seoAnalyzeBtn').addEventListener('click', () => {
-    const html = document.getElementById('contentArea').innerHTML;
-    const keyword = keywordInput().value;
-
-    fetch('/api/analyze-seo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, keyword })
-    })
-    .then(r => r.json())
-    .then(data => {
-        const box = document.getElementById('seoResult');
-        box.classList.remove('hidden');
-
-        box.innerHTML = `
-            <h2 class="text-xl font-bold">SEO 분석 결과</h2>
-            <p class="mt-2"><strong>점수:</strong> ${data.score}</p>
-            <p><strong>가독성:</strong> ${data.readability}</p>
-            <p><strong>키워드 사용:</strong> ${data.keyword_usage}</p>
-
-            <h3 class="font-bold mt-4">문제점</h3>
-            <ul class="list-disc ml-6">${data.problems.map(v => `<li>${v}</li>`).join('')}</ul>
-
-            <h3 class="font-bold mt-4">개선 제안</h3>
-            <ul class="list-disc ml-6">${data.suggestions.map(v => `<li>${v}</li>`).join('')}</ul>
-        `;
-    });
-});
-
-// 5) SEO 자동 개선
-document.getElementById('upgradeContentBtn').addEventListener('click', () => {
-    const html = document.getElementById('contentArea').innerHTML;
-    const keyword = keywordInput().value;
-
-    fetch('/api/upgrade-content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, keyword })
-    })
-    .then(r => r.json())
-    .then(data => {
-        document.getElementById('contentArea').innerHTML = data.html;
-        alert('SEO 자동 개선 완료!');
-    });
-});
-
-// 6) 태그 자동 생성
-document.getElementById('tagGenerateBtn').addEventListener('click', () => {
-    const keyword = keywordInput().value;
-    const html    = document.getElementById('contentArea').innerHTML;
-
-    fetch('/api/generate-tags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword, html })
-    })
-    .then(r => r.json())
-    .then(data => {
-        const box = document.getElementById('tagBox');
-        box.classList.remove('hidden');
-
-        box.innerHTML = `
-            <h2 class="font-bold text-lg mb-2">추천 태그</h2>
-            <div class="flex flex-wrap gap-2">
-                ${data.tags.map(t => `<span class="px-2 py-1 bg-gray-200 rounded">${t}</span>`).join('')}
+        {{-- 1. 프로젝트 & 기본 정보 --}}
+        <div class="bg-white p-4 rounded-xl shadow border space-y-4">
+            <div>
+                <label class="font-semibold">프로젝트 선택</label>
+                <select id="project_id" class="w-full border rounded p-2 mt-1">
+                    @foreach($projects as $project)
+                        <option value="{{ $project->id }}">
+                            {{ $project->name }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
-        `;
-    });
-});
 
-// 7) 내부 링크 추천
-document.getElementById('internalLinkBtn').addEventListener('click', () => {
-    const project_id = projectInput().value;
-    const keyword = keywordInput().value;
-    const html = document.getElementById('contentArea').innerHTML;
+            <div>
+                <label class="font-semibold">키워드</label>
+                <input id="keyword" class="w-full border rounded p-2 mt-1"
+                       placeholder="예: 인공지능 블로그 자동화">
+            </div>
 
-    fetch('/api/recommend-internal-links', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project_id, keyword, html })
-    })
-    .then(r => r.json())
-    .then(data => {
-        const box = document.getElementById('internalLinkBox');
-        box.classList.remove('hidden');
+            <div>
+                <label class="font-semibold">스타일</label>
+                <select id="style" class="w-full border rounded p-2 mt-1">
+                    <option value="default">기본</option>
+                    <option value="emotional">감성적</option>
+                    <option value="professional">전문적</option>
+                    <option value="casual">캐주얼</option>
+                    <option value="short">짧고 간결</option>
+                    <option value="seo">SEO 최적화</option>
+                </select>
+            </div>
+        </div>
 
-        box.innerHTML = `
-            <h2 class="font-bold text-lg mb-2">추천 내부 링크</h2>
-            <ul class="list-disc ml-6">
-                ${
-                    data.links
-                    .map(v=>`<li><a href="/posts/${v.id}" target="_blank" class="text-blue-600 underline">${v.title}</a></li>`)
-                    .join('')
-                }
-            </ul>
-        `;
-    });
-});
+        {{-- 2. 제목 생성 영역 --}}
+        <div class="bg-white p-4 rounded-xl shadow border space-y-4">
 
-// 8) 키워드 탐색
-document.getElementById('exploreBtn').addEventListener('click', () => {
-    const keyword = keywordInput().value;
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold">제목 생성</h2>
+                <button id="btn-generate-titles"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                    제목 5개 생성
+                </button>
+            </div>
 
-    fetch('/api/explore-keyword', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword })
-    })
-    .then(r => r.json())
-    .then(data => {
-        const box = document.getElementById('keywordResult');
-        box.classList.remove('hidden');
+            <div id="title_suggestions" class="space-y-2">
+                {{-- 생성된 제목 버튼들 들어감 --}}
+            </div>
 
-        box.innerHTML = `
-            <h2 class="font-bold text-xl">🔍 키워드 분석 결과</h2>
+            <div class="mt-4">
+                <label class="font-semibold">선택된 제목</label>
+                <input id="title" class="w-full border rounded p-2 mt-1"
+                       placeholder="제목을 선택하거나 직접 입력">
+            </div>
+        </div>
 
-            <h3 class="mt-3 font-semibold">연관 키워드</h3>
-            <ul class="list-disc ml-6">
-                ${data.related.map(v => `<li>${v.keyword} (${v.intent}, 난이도 ${v.difficulty})</li>`).join('')}
-            </ul>
+        {{-- 3. 본문 생성 + 미리보기 --}}
+        <div class="bg-white p-4 rounded-xl shadow border space-y-4">
 
-            <h3 class="mt-4 font-semibold">롱테일 키워드</h3>
-            <ul class="list-disc ml-6">
-                ${data.longtail.map(v => `<li>${v}</li>`).join('')}
-            </ul>
-        `;
-    });
-});
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold">본문 생성</h2>
+                <button id="btn-generate-content"
+                        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    본문 생성하기
+                </button>
+            </div>
 
-document.getElementById('thumbnailBtn').addEventListener('click', () => {
-    const title = document.querySelector('#titleList li')?.textContent || keywordInput().value;
-    const html = document.getElementById('contentArea').innerHTML;
+            <div id="meta_description" class="text-sm text-gray-500 mt-1 hidden"></div>
 
-    fetch('/api/generate-thumbnail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, html })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.thumbnail) {
-            document.getElementById('thumbnailPreview').classList.remove('hidden');
-            document.getElementById('thumbnailImage').src = data.thumbnail;
+            <div id="content_area"
+                 class="mt-4 p-4 border rounded bg-gray-50 min-h-[300px]"
+                 contenteditable="true">
+                {{-- 생성된 HTML 본문이 들어감 --}}
+            </div>
+        </div>
+
+        {{-- 4. SEO 분석 / 태그 / 썸네일 / 저장 --}}
+        <div class="bg-white p-4 rounded-xl shadow border space-y-4">
+
+            <h2 class="text-xl font-bold mb-2">SEO & 저장</h2>
+
+            <div class="flex flex-wrap gap-3">
+
+                <button id="btn-analyze-seo"
+                        class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                    SEO 분석
+                </button>
+
+                <button id="btn-generate-tags"
+                        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    태그 자동 생성
+                </button>
+
+                <button id="btn-generate-thumb"
+                        class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">
+                    썸네일 생성
+                </button>
+
+                <button id="btn-save-draft"
+                        class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800">
+                    Draft로 저장
+                </button>
+
+                <button id="btn-save-post"
+                        class="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-800">
+                    게시글로 저장
+                </button>
+            </div>
+
+            {{-- SEO 결과 --}}
+            <div id="seo_result" class="mt-4 hidden bg-gray-50 p-3 rounded border text-sm whitespace-pre-line"></div>
+
+            {{-- 태그 결과 --}}
+            <div id="tag_result" class="mt-4 hidden">
+                <h3 class="font-semibold mb-1">추천 태그</h3>
+                <div id="tag_list" class="flex flex-wrap gap-2 text-sm"></div>
+            </div>
+
+            {{-- 썸네일 미리보기 --}}
+            <div id="thumb_box" class="mt-4 hidden">
+                <h3 class="font-semibold mb-1">썸네일 미리보기</h3>
+                <img id="thumb_img" class="w-64 h-36 object-cover rounded shadow">
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        const csrfToken = '{{ csrf_token() }}';
+
+        function getPayload() {
+            return {
+                project_id: document.getElementById('project_id').value,
+                keyword:    document.getElementById('keyword').value,
+                style:      document.getElementById('style').value,
+                title:      document.getElementById('title').value,
+                html:       document.getElementById('content_area').innerHTML
+            };
         }
-    });
-});
 
+        /* -----------------------------
+           1) 제목 생성
+        ----------------------------- */
+        document.getElementById('btn-generate-titles').onclick = function () {
+            const keyword = document.getElementById('keyword').value;
+            const style   = document.getElementById('style').value;
 
-// Helper
-function keywordInput(){ return document.getElementById('keyword'); }
-function styleInput(){ return document.getElementById('style'); }
-function projectInput(){ return document.getElementById('project_id'); }
+            fetch("{{ route('generate.titles') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify({ keyword, style })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const box = document.getElementById('title_suggestions');
+                    box.innerHTML = '';
 
-</script>
+                    (data.titles || []).forEach(t => {
+                        const btn = document.createElement('button');
+                        btn.className = "px-3 py-1 border rounded mr-2 mb-2 hover:bg-gray-100 text-sm";
+                        btn.textContent = t;
+                        btn.onclick = () => {
+                            document.getElementById('title').value = t;
+                        };
+                        box.appendChild(btn);
+                    });
+                });
+        };
+
+        /* -----------------------------
+           2) 본문 생성
+        ----------------------------- */
+        document.getElementById('btn-generate-content').onclick = function () {
+            const payload = getPayload();
+
+            fetch("{{ route('generate.content') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify({
+                    keyword: payload.keyword,
+                    title: payload.title,
+                    style: payload.style
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('content_area').innerHTML = data.html || '';
+                    const md = document.getElementById('meta_description');
+                    if (data.meta && data.meta.description) {
+                        md.classList.remove('hidden');
+                        md.textContent = 'Meta Description: ' + data.meta.description;
+                    }
+                });
+        };
+
+        /* -----------------------------
+           3) SEO 분석
+        ----------------------------- */
+        document.getElementById('btn-analyze-seo').onclick = function () {
+            const payload = getPayload();
+
+            fetch("{{ route('generate.analyze') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify({
+                    keyword: payload.keyword,
+                    title: payload.title,
+                    html: payload.html
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const box = document.getElementById('seo_result');
+                    box.classList.remove('hidden');
+                    box.textContent = JSON.stringify(data, null, 2);
+                });
+        };
+
+        /* -----------------------------
+           4) 태그 자동 생성
+        ----------------------------- */
+        document.getElementById('btn-generate-tags').onclick = function () {
+            const payload = getPayload();
+
+            fetch("{{ route('generate.tags') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify({
+                    keyword: payload.keyword,
+                    title: payload.title,
+                    html: payload.html
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const tags = data.tags || [];
+                    const box  = document.getElementById('tag_list');
+                    const wrap = document.getElementById('tag_result');
+
+                    box.innerHTML = '';
+                    tags.forEach(t => {
+                        const span = document.createElement('span');
+                        span.className = "px-3 py-1 bg-blue-100 text-blue-700 rounded-full";
+                        span.textContent = t;
+                        box.appendChild(span);
+                    });
+
+                    if (tags.length > 0) {
+                        wrap.classList.remove('hidden');
+                    }
+                });
+        };
+
+        /* -----------------------------
+           5) 썸네일 생성
+        ----------------------------- */
+        document.getElementById('btn-generate-thumb').onclick = function () {
+            const payload = getPayload();
+
+            fetch("{{ route('generate.thumbnail') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify({
+                    title: payload.title,
+                    html: payload.html
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const box = document.getElementById('thumb_box');
+                    const img = document.getElementById('thumb_img');
+
+                    img.src = data.thumbnail || '';
+                    box.classList.remove('hidden');
+                });
+        };
+
+        /* -----------------------------
+           6) Draft 저장
+        ----------------------------- */
+        document.getElementById('btn-save-draft').onclick = function () {
+            const payload = getPayload();
+
+            fetch("{{ route('generate.saveDraft') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(r => r.json())
+                .then(() => {
+                    alert('Draft로 저장되었습니다.');
+                    window.location.href = '/drafts';
+                });
+        };
+
+        /* -----------------------------
+           7) 게시글로 저장
+        ----------------------------- */
+        document.getElementById('btn-save-post').onclick = function () {
+            const payload = getPayload();
+
+            fetch("{{ route('generate.savePost') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": csrfToken
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(r => r.json())
+                .then(() => {
+                    alert('게시글로 저장되었습니다.');
+                    window.location.href = '/posts';
+                });
+        };
+    </script>
 @endsection

@@ -12,10 +12,11 @@ class Post extends Model
     protected $fillable = [
         'user_id',
         'project_id',
+        'is_draft',
         'keyword',
         'title',
-        'html',
         'content',
+        'html',
         'meta',
 
         // platform sync
@@ -27,6 +28,15 @@ class Post extends Model
         'tistory_access_token',
         'blog_name',
 
+        'publish_meta',
+        'wp_ctr',
+        'tistory_ctr',
+
+        'thumbnail_url',
+        'generated_at',
+        'tags',
+
+        // stats
         'views',
         'clicks',
         'ctr',
@@ -37,18 +47,17 @@ class Post extends Model
 
     protected $casts = [
         'meta' => 'array',
-        'publish_meta'  => 'array',
+        'publish_meta' => 'array',
         'is_draft' => 'boolean',
         'generated_at' => 'datetime',
+        'last_synced_at' => 'datetime',
     ];
 
-    // Project 관계
     public function project()
     {
         return $this->belongsTo(Project::class);
     }
 
-    // 버전 관계
     public function versions()
     {
         return $this->hasMany(PostVersion::class);

@@ -1,80 +1,147 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="container mx-auto p-6">
+<div class="container mx-auto p-6">
 
-        <h1 class="text-3xl font-bold mb-6">게시글 목록</h1>
+    {{-- ----------------------------------------
+         상단 타이틀 + 새 글 생성 버튼
+    ----------------------------------------- --}}
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-3xl font-bold">전체 게시글</h1>
 
-        {{-- 프로젝트 필터 --}}
-        <form method="GET" class="mb-6">
-            <select name="project_id"
-                    onchange="this.form.submit()"
-                    class="border rounded p-2">
-                <option value="">전체 프로젝트</option>
-                @foreach($projects as $p)
-                    <option value="{{ $p->id }}"
-                            @if(request('project_id') == $p->id) selected @endif>
-                        {{ $p->name }}
-                    </option>
-                @endforeach
-            </select>
-        </form>
+        <a href="{{ route('generate.page') }}"
+           class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700">
+            + 새 글 생성
+        </a>
+    </div>
 
-        {{-- 게시글 카드 --}}
-        @if($posts->count() === 0)
-            <p class="text-gray-500">게시글이 없습니다.</p>
-        @else
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {{-- ----------------------------------------
+         통계 카드
+    ----------------------------------------- --}}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
 
-                @foreach($posts as $post)
-                    <a href="/posts/{{ $post->id }}"
-                       class="block bg-white p-4 border rounded-xl shadow hover:shadow-lg transition">
+        {{-- 총 게시글 --}}
+        <div class="p-4 bg-white border rounded shadow">
+            <h3 class="text-gray-600 text-sm">총 게시글</h3>
+            <p class="text-2xl font-bold">{{ $posts->count() }}</p>
+        </div>
 
-                        {{-- 썸네일 --}}
-                        @if($post->thumbnail_url)
-                            <img src="{{ $post->thumbnail_url }}"
-                                 class="w-full h-40 object-cover rounded mb-3">
-                        @else
-                            <div class="w-full h-40 bg-gray-200 rounded mb-3 flex items-center justify-center text-gray-500">
-                                No Thumbnail
-                            </div>
-                        @endif
+        {{-- 평균 CTR --}}
+        <div class="p-4 bg-white border rounded shadow">
+            <h3 class="text-gray-600 text-sm">평균 CTR</h3>
+            <p class="text-2xl font-bold">
+                {{ number_format($posts->avg('ctr') ?? 0, 2) }}%
+            </p>
+        </div>
 
-                        {{-- 제목 --}}
-                        <h2 class="text-xl font-bold mb-1">{{ Str::limit($post->title, 40) }}</h2>
+        {{-- 평균 조회수 --}}
+        <div class="p-4 bg-white border rounded shadow">
+            <h3 class="text-gray-600 text-sm">평균 조회수</h3>
+            <p class="text-2xl font-bold">
+                {{ number_format($posts->avg('views') ?? 0) }}
+            </p>
+        </div>
 
-                        {{-- 키워드 --}}
-                        <div class="text-sm text-blue-600 mb-2">
-                            키워드: {{ $post->keyword }}
-                        </div>
-
-                        {{-- 프로젝트 --}}
-                        <div class="text-gray-500 text-sm">
-                            프로젝트: {{ $post->project->name ?? '-' }}
-                        </div>
-
-                        {{-- 생성일 --}}
-                        <div class="text-gray-400 text-xs mt-1">
-                            {{ $post->created_at->format('Y-m-d H:i') }}
-                        </div>
-
-                        {{-- SEO 점수 --}}
-                        @if(isset($post->meta['seo_score']))
-                            <div class="mt-2 text-sm">
-                                SEO 점수:
-                                <span class="font-bold">{{ $post->meta['seo_score'] }}</span>
-                            </div>
-                        @endif
-
-                        {{-- 버전 수 --}}
-                        <div class="mt-1 text-sm text-gray-500">
-                            버전: {{ $post->versions->count() }}개
-                        </div>
-                    </a>
-                @endforeach
-
-            </div>
-        @endif
+        {{-- 최근 7일 신규 게시글 --}}
+        <div class="p-4 bg-white border rounded shadow">
+            <h3 class="text-gray-600 text-sm">최근 7일 신규 게시글</h3>
+            <p class="text-2xl font-bold">
+                {{ $posts->where('created_at', '>=', now()->subDays(7))->count() }}
+            </p>
+        </div>
 
     </div>
+
+    {{-- ----------------------------------------
+         검색/필터 영역
+    ----------------------------------------- --}}
+    <form method="GET" action="/posts" class="mb-10">
+        <div class="flex flex-wrap items-end gap-4">
+
+            {{-- 프로젝트 필터 --}}
+            <div>
+                <label class="font-semibold">프로젝트</label>
+                <select name="project_id" class="border rounded p-2">
+                    <option value="">전체</option>
+                    @foreach($projects as $prj)
+                        <option value="{{ $prj->id }}"
+                            @if(request('project_id') == $prj->id) selected @endif>
+                            {{ $prj->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- 검색 --}}
+            <div>
+                <label class="font-semibold">검색</label>
+                <input type="text" name="q" class="border rounded p-2 w-60"
+                       placeholder="제목 또는 키워드 검색"
+                       value="{{ request('q') }}">
+            </div>
+
+            <button class="px-4 py-2 bg-gray-800 text-white rounded">
+                적용
+            </button>
+        </div>
+    </form>
+
+    {{-- 게시글이 없을 때 --}}
+    @if ($posts->count() === 0)
+        <div class="text-center text-gray-500 py-20">
+            게시글이 없습니다.
+        </div>
+    @endif
+
+    {{-- ----------------------------------------
+         게시글 리스트
+    ----------------------------------------- --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        @foreach($posts as $post)
+            <a href="{{ route('posts.show', $post->id) }}"
+               class="block p-5 bg-white border rounded-xl shadow hover:shadow-lg transition">
+
+                {{-- 제목 --}}
+                <h2 class="text-xl font-bold mb-2">
+                    {{ $post->title }}
+                </h2>
+
+                {{-- 프로젝트명 --}}
+                <p class="text-gray-500 text-sm mb-1">
+                    프로젝트: <strong>{{ $post->project->name ?? '-' }}</strong>
+                </p>
+
+                {{-- 키워드 --}}
+                <p class="text-gray-500 text-sm mb-3">
+                    키워드: <strong>{{ $post->keyword }}</strong>
+                </p>
+
+                {{-- 통계 --}}
+                <div class="grid grid-cols-3 text-center text-sm py-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <strong>{{ $post->views ?? 0 }}</strong><br>
+                        <span class="text-gray-500">조회수</span>
+                    </div>
+                    <div>
+                        <strong>{{ $post->clicks ?? 0 }}</strong><br>
+                        <span class="text-gray-500">클릭수</span>
+                    </div>
+                    <div>
+                        <strong>{{ number_format($post->ctr ?? 0, 2) }}%</strong><br>
+                        <span class="text-gray-500">CTR</span>
+                    </div>
+                </div>
+
+                {{-- 생성일 --}}
+                <p class="text-gray-400 text-xs mt-3">
+                    {{ $post->created_at->format('Y-m-d H:i') }}
+                </p>
+
+            </a>
+        @endforeach
+
+    </div>
+
+</div>
 @endsection

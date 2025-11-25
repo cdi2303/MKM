@@ -40,4 +40,14 @@ return [
         'url' => env('OPENAI_API_URL', 'https://api.openai.com/v1'),
     ],
 
+    'codexmax' => [
+        'url'   => env('CODEX_MAX_URL'),
+        'model' => env('CODEX_MAX_MODEL'),
+    ],
+
+    'localllm' => [
+        'url' => env('LOCAL_LLM_URL'),
+        'model' => env('LOCAL_LLM_MODEL'),
+    ],
+
 ];

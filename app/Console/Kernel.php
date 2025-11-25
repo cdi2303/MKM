@@ -9,8 +9,7 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        // 매일 새벽 3시
-        $schedule->command('stats:collect')->dailyAt('03:00');
+        $schedule->command('stats:collect')->dailyAt('06:00');
     }
 
     protected function commands(): void

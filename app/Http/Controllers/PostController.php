@@ -16,18 +16,50 @@ class PostController extends Controller
     {
         $projects = Project::where('user_id', Auth::id())->get();
 
-        $query = Post::where('user_id', Auth::id())
-            ->where('is_draft', false)
-            ->orderBy('id', 'desc');
+        $query = Post::where('user_id', Auth::id());
 
+        // 프로젝트 필터
         if ($request->project_id) {
             $query->where('project_id', $request->project_id);
         }
 
-        $posts = $query->get();
+        // 기간 필터
+        if ($request->has('date_range')) {
+            if ($request->date_range == '7') {
+                $query->where('created_at', '>=', now()->subDays(7));
+            } elseif ($request->date_range == '30') {
+                $query->where('created_at', '>=', now()->subDays(30));
+            } elseif ($request->date_range == '90') {
+                $query->where('created_at', '>=', now()->subDays(90));
+            }
+        }
+
+        // 검색 (제목 + 키워드 + 본문)
+        if ($request->q) {
+            $q = $request->q;
+            $query->where(function($qr) use ($q) {
+                $qr->where('title', 'like', "%{$q}%")
+                ->orWhere('keyword', 'like', "%{$q}%")
+                ->orWhere('html', 'like', "%{$q}%");
+            });
+        }
+
+        // 정렬
+        if ($request->sort == 'views') {
+            $query->orderBy('views', 'desc');
+        } elseif ($request->sort == 'ctr') {
+            $query->orderBy('ctr', 'desc');
+        } elseif ($request->sort == 'seo') {
+            $query->orderByRaw("JSON_EXTRACT(meta, '$.seo_score') DESC");
+        } else {
+            $query->orderBy('id', 'desc'); // 기본 최신순
+        }
+
+        $posts = $query->paginate(21);
 
         return view('posts.index', compact('posts', 'projects'));
     }
+
 
     /* ----------------------------------------------
         게시글 상세
@@ -278,5 +310,62 @@ class PostController extends Controller
         ]);
 
         return response()->json(['result' => true]);
+    }
+
+    public function destroy($id)
+    {
+        $post = Post::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        $post->delete();
+
+        return redirect()->route('posts.index')
+            ->with('success', '게시글이 삭제되었습니다.');
+    }
+
+    public function edit($id)
+    {
+        $post = Post::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        $projects = Project::where('user_id', Auth::id())->get();
+
+        return view('posts.edit', compact('post', 'projects'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $post = Post::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->firstOrFail();
+
+        // 유효성 검사
+        $request->validate([
+            'project_id' => 'required|exists:projects,id',
+            'title'      => 'required|string|max:255',
+            'keyword'    => 'nullable|string|max:255',
+            'html'       => 'nullable|string',
+        ]);
+
+        // 기존 메타 유지
+        $meta = $post->meta ?? [];
+
+        // 업데이트할 데이터
+        $updateData = [
+            'project_id' => $request->project_id,
+            'title'      => $request->title,
+            'keyword'    => $request->keyword,
+            'html'       => $request->html,
+            'content'    => strip_tags($request->html), // content 최신화
+            'meta'       => $meta,                      // meta 보존
+        ];
+
+        $post->update($updateData);
+
+        return redirect()
+            ->route('posts.show', $post->id)
+            ->with('success', '게시글이 성공적으로 수정되었습니다.');
     }
 }

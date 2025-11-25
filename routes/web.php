@@ -121,7 +121,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/generate/upgrade', [GenerationController::class, 'upgradeContent'])
         ->name('generate.upgrade');
 
-
+    Route::post('/generate/quality-check', [GenerationController::class, 'qualityCheck'])
+        ->name('generate.qualityCheck');
 
     /*
     |------------------------------
@@ -161,6 +162,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/posts/{id}/generate-title-tests', [GenerationController::class, 'generateTitleCandidates'])
         ->name('posts.generateTitleTests');
 
+    Route::delete('/posts/{id}', [PostController::class, 'destroy'])->name('posts.destroy');
+    Route::get('/posts/{id}/edit', [PostController::class, 'edit'])
+        ->name('posts.edit');
+
+    Route::put('/posts/{id}', [PostController::class, 'update'])
+        ->name('posts.update');
+
     /*
     |------------------------------
     | Drafts
@@ -172,20 +180,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/drafts/{id}', [PostController::class, 'editDraft'])
         ->name('drafts.edit');
 
-
-
-    /*
-    |------------------------------
-    | Publishing (WordPress, Tistory)
-    |------------------------------
-    */
     Route::post('/posts/{id}/publish/wordpress', [PostPublishController::class, 'publishWordpress'])
         ->name('posts.publish.wp');
-
-    Route::post('/posts/{id}/publish/tistory', [PostPublishController::class, 'publishTistory'])
-        ->name('posts.publish.tistory');
-
-
 
     /*
     |------------------------------

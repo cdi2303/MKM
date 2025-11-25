@@ -123,39 +123,23 @@ class GenerationController extends Controller {
     /* ----------------------------------------------
         저장 전용 API
     ---------------------------------------------- */
-    public function savePost(Request $request)
+    public function savePost(Request $req)
     {
-        $title = $request->title ?? '제목 없음';
-        $cleanText = strip_tags($request->html);
+        $post = Post::findOrFail($req->id);
 
-        $post = Post::create([
-            'user_id'       => Auth::id(),
-            'project_id'    => $request->project_id,
-            'keyword'       => $request->keyword,
-            'title'         => $title,
-            'html'          => $request->html,
-            'content'       => $cleanText,
+        $meta = $post->meta ?? [];
+        if ($req->tags) {
+            $meta['tags'] = $req->tags;
+        }
 
-            // SEO meta
-            'meta'          => [
-                'description' => mb_substr($cleanText, 0, 150),
-                'tags'        => $request->tags ?? [],
-                'seo_score'   => $request->seo_score ?? null
-            ],
-
-            // 썸네일 저장 (없으면 null)
-            'thumbnail_url' => $request->thumbnail_url ?? null,
-
-            'generated_at'  => now()
+        $post->update([
+            'title' => $req->title ?? $post->title,
+            'keyword' => $req->keyword ?? $post->keyword,
+            'html' => $req->html ?? $post->html,
+            'meta' => $meta
         ]);
 
-        // 버전 관리 기능 유지
-        $this->saveVersion($post);
-
-        return response()->json([
-            'result' => true,
-            'post'   => $post
-        ]);
+        return response()->json(['ok' => true]);
     }
 
     public function analyzeSEO(Request $request)
@@ -499,6 +483,46 @@ class GenerationController extends Controller {
         }
 
         return response()->json(['result' => true, 'titles' => $titles]);
+    }
+
+    public function qualityCheck(Request $request)
+    {
+        $title = $request->title;
+        $html  = strip_tags($request->html);
+        $keyword = $request->keyword;
+
+        // OpenAI 또는 Llama API 활용
+        $prompt = "
+        너는 SEO 전문가 + NLP 분석가이다.
+        아래 글의 품질을 평가해라.
+
+        제목: {$title}
+        키워드: {$keyword}
+
+        본문:
+        {$html}
+
+        항목별 JSON으로 출력해라:
+
+        {
+            \"spam_risk\": 0~100,
+            \"ai_detect_risk\": 0~100,
+            \"readability\": \"문장 난이도/가독성 평가\",
+            \"keyword_density\": \"키워드 사용 비율 설명\",
+            \"suggestions\": [\"개선 포인트 1\", \"개선 포인트 2\", ...]
+        }
+        ";
+
+        $result = openai()->chat()->create([
+            'model' => 'gpt-4o-mini',
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt]
+            ]
+        ]);
+
+        $json = json_decode($result->choices[0]->message->content, true);
+
+        return response()->json($json);
     }
 
 
